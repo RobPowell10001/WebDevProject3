@@ -1,0 +1,20 @@
+﻿@{
+    ViewData["Title"] = "ChatGPT Test";
+}
+<h1>@ViewData["Title"]</h1>
+
+<div id="insertHere">
+</div>
+
+
+<script>
+    // Use Razor syntax to inject the backend value into JavaScript
+    var backendMessage = "@ViewData["Message"]";
+    console.log("Message from backend:", backendMessage);
+
+    const message = document.createElement("p");
+    message.textContent = backendMessage;
+    const target = document.getElementById("insertHere");
+    target.appendChild(message);
+</script>
+

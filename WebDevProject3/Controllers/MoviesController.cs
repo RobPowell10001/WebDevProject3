@@ -7,16 +7,21 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Entities;
 using WebDevProject3.Data;
+using Microsoft.Extensions.Options;
+using API;
 
 namespace Controllers
 {
     public class MoviesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private LLM LLM;
 
-        public MoviesController(ApplicationDbContext context)
+        public MoviesController(ApplicationDbContext context, IOptions<Settings.OAIConfig> oaiConfig)
         {
             _context = context;
+            LLM = new LLM(oaiConfig);
+            LLM.systemPrompt = "Taking the user prompt as the name of a movie, provide a brief synopsis of the movie. (Within 40 words)";
         }
 
         // GET: Movies
@@ -54,8 +59,20 @@ namespace Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Title,IMBDLink,Genre,ReleaseYear,Poster,Summary")] Movie movie)
+        public async Task<IActionResult> Create([Bind("Id,Title,IMBDLink,Genre,ReleaseYear,Poster,Summary")] Movie movie, IFormFile? PosterFile)
         {
+            ModelState.Remove("Poster");
+
+            if (PosterFile != null && PosterFile.Length > 0)
+            {
+                using (var memoryStream = new MemoryStream())
+                {
+                    await PosterFile.CopyToAsync(memoryStream);
+                    movie.Poster = memoryStream.ToArray(); // Convert to byte[]
+                }
+            }
+            movie.Summary = await LLM.CallWithSystemPrompt(movie.Title);
+
             if (ModelState.IsValid)
             {
                 _context.Add(movie);

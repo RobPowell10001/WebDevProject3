@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Entities;
 
@@ -12,6 +13,9 @@ public class Actor
     public int Age { get; set; }
     public string IMDBLink { get; set; }
     public byte[]? Photo { get; set; }
+
+    [NotMapped]
+    public IFormFile PhotoFile { get; set; }
 }
 /*Name
 Gender

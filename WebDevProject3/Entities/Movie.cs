@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Attributes;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Entities;
@@ -13,6 +14,7 @@ public class Movie
 
     [Required]
     public string Title { get; set; }
+    [IMDBLinkValidation]
     public string IMBDLink { get; set; }
     public int ReleaseYear { get; set; }
 

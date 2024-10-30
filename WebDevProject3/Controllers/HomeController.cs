@@ -7,7 +7,7 @@ using OpenAI.Chat;
 using Settings;
 using System.Diagnostics;
 using System.Text;
-using WebDevProject3.Models;
+using Models;
 
 namespace Controllers
 {

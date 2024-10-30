@@ -49,7 +49,12 @@
                 @Html.DisplayFor(modelItem => item.ReleaseYear)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.Poster)
+                    @if (item.Poster != null)
+                    {
+                        var base64 = Convert.ToBase64String(item.Poster);
+                        var imgSrc = string.Format("data:image/jpg;base64,{0}", base64);
+                        <img src="@imgSrc" height="200" width="135" />
+                    }
             </td>
             <td>
                 @Html.DisplayFor(modelItem => item.Summary)

@@ -15,7 +15,7 @@ public class Actor
     public byte[]? Photo { get; set; }
 
     [NotMapped]
-    public IFormFile PhotoFile { get; set; }
+    public IFormFile? PhotoFile { get; set; }
 }
 /*Name
 Gender

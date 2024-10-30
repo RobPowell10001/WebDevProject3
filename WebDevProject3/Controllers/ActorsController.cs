@@ -54,8 +54,19 @@ namespace Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Gender,Age,IMDBLink,Photo")] Actor actor)
+        public async Task<IActionResult> Create([Bind("Id,Name,Gender,Age,IMDBLink,Photo")] Actor actor, IFormFile? PhotoFile)
         {
+            ModelState.Remove("Photo");
+
+            if (PhotoFile != null && PhotoFile.Length > 0)
+            {
+                using (var memoryStream = new MemoryStream())
+                {
+                    await PhotoFile.CopyToAsync(memoryStream);
+                    actor.Photo = memoryStream.ToArray(); // Convert to byte[]
+                }
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Add(actor);

@@ -28,7 +28,7 @@ namespace API
                     {
                         new { role = "user", content = prompt }
                     },
-                    max_tokens = 50
+                    max_tokens = 950
                 };
 
                 var json = JsonConvert.SerializeObject(requestBody);
@@ -63,7 +63,7 @@ namespace API
                         new { role = "system", content = systemPrompt},
                         new { role = "user", content = prompt }
                     },
-                    max_tokens = 50
+                    max_tokens = 950
                 };
 
                 var json = JsonConvert.SerializeObject(requestBody);

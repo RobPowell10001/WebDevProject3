@@ -40,6 +40,12 @@ namespace Controllers
                 return NotFound();
             }
 
+            var movies = await _context.Role
+                .Include(r => r.Movie)
+                .Where(r => r.ActorId == actor.Id)
+                .Select(r => r.Movie)
+                .ToListAsync();
+
             return View(actor);
         }
 

@@ -9,19 +9,42 @@ using Entities;
 using WebDevProject3.Data;
 using Microsoft.Extensions.Options;
 using API;
+using Models;
+using VaderSharp2;
+using System.Numerics;
 
 namespace Controllers
 {
     public class MoviesController : Controller
     {
         private readonly ApplicationDbContext _context;
-        private LLM LLM;
+        private LLM SummaryLanguageModel;
+        private LLM ReviewLanguageModel;
+
+        //Returns a triple double containing the positive, negative, and compound sentiment values
+        public Tuple<double,double,double> AnalyzeSentiment(string inputText)
+        {
+            // Initialize the sentiment analyzer
+            var analyzer = new SentimentIntensityAnalyzer();
+
+            // Analyze the sentiment of the input text
+            var results = analyzer.PolarityScores(inputText);
+
+            // Prepare the output
+            var sentimentResult = new Tuple<double, double, double>(results.Positive, results.Negative, results.Compound);
+
+            // Pass the result to the view or return as JSON
+            return sentimentResult;
+        }
 
         public MoviesController(ApplicationDbContext context, IOptions<Settings.OAIConfig> oaiConfig)
         {
             _context = context;
-            LLM = new LLM(oaiConfig);
-            LLM.systemPrompt = "Taking the user prompt as the name of a movie, provide a brief synopsis of the movie. (Within 40 words)";
+            SummaryLanguageModel = new LLM(oaiConfig);
+            SummaryLanguageModel.systemPrompt = "Taking the user prompt as the name of a movie, provide a brief synopsis of the movie. (Within 40 words)";
+            ReviewLanguageModel = new LLM(oaiConfig);
+            ReviewLanguageModel.systemPrompt = "The user prompt will be the name of a movie. Provide ten 50 word reviews of the movie, each with varying opinions. Ensure the reviews are realistic and full-length, not singular sentences. Do not number your responses; provide only the reviews, delimited with |";
+
         }
 
         // GET: Movies
@@ -44,8 +67,29 @@ namespace Controllers
             {
                 return NotFound();
             }
+            var actors = await _context.Role
+                .Include(r => r.Actor)
+                .Where(r => r.MovieId == movie.Id)
+                .Select(r => r.Actor)
+                .ToListAsync();
+            
+            IEnumerable<string> LLMOutput = (await ReviewLanguageModel.CallWithSystemPrompt(movie.Title).ConfigureAwait(false)).Split("|");
 
-            return View(movie);
+            IEnumerable<Tuple<string, string>> reviews = [];
+
+            double averageSentiment = 0.0;
+            
+            foreach (string review in LLMOutput)
+            { 
+                var sentiment = AnalyzeSentiment(review);
+                string sentimentString = $"Positivity: {sentiment.Item1}\n Negativity: {sentiment.Item2}\n Overall: {sentiment.Item3}";
+                averageSentiment += sentiment.Item3 / 10;
+                reviews = reviews.Append(new Tuple<string, string>(review, sentimentString));
+            }
+
+            var detailsModel = new MovieDetailsViewModel(movie, actors, reviews, averageSentiment);
+
+            return View(detailsModel);
         }
 
         // GET: Movies/Create
@@ -71,7 +115,7 @@ namespace Controllers
                     movie.Poster = memoryStream.ToArray(); // Convert to byte[]
                 }
             }
-            movie.Summary = await LLM.CallWithSystemPrompt(movie.Title);
+            movie.Summary = await SummaryLanguageModel.CallWithSystemPrompt(movie.Title);
 
             if (ModelState.IsValid)
             {
@@ -103,12 +147,36 @@ namespace Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,IMBDLink,Genre,ReleaseYear,Poster,Summary")] Movie movie)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,IMBDLink,Genre,ReleaseYear,Poster,Summary")] Movie movie, IFormFile? PosterFile)
         {
             if (id != movie.Id)
             {
                 return NotFound();
             }
+
+            if (PosterFile != null && PosterFile.Length > 0)
+            {
+                using (var memoryStream = new MemoryStream())
+                {
+                    await PosterFile.CopyToAsync(memoryStream);
+                    movie.Poster = memoryStream.ToArray(); // Convert to byte[]
+                }
+            }
+            else
+            {
+                var existingMovie = await _context.Movie.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
+                movie.Poster = existingMovie.Poster; // Keep the existing photo
+            }
+
+            if (movie.Summary != null && movie.Summary.Length > 0)
+            {
+            }
+            else
+            {
+                var existingMovie = await _context.Movie.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
+                movie.Summary = existingMovie.Summary; // Keep the existing summary
+            }
+
 
             if (ModelState.IsValid)
             {

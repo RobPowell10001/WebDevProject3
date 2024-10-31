@@ -12,11 +12,10 @@ public class Movie
     public string? Summary { get; set; }
     public string? Genre { get; set; }
 
-    [Required]
-    public string Title { get; set; }
-    [IMDBLinkValidation]
-    public string IMBDLink { get; set; }
-    public int ReleaseYear { get; set; }
+    public string? Title { get; set; }
+    //[IMDBLinkValidation]
+    public string? IMBDLink { get; set; }
+    public int? ReleaseYear { get; set; }
 
 
     [NotMapped]

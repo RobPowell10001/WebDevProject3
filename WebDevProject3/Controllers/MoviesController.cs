@@ -29,7 +29,13 @@ namespace Controllers
             SummaryLanguageModel = new LLM(oaiConfig);
             SummaryLanguageModel.systemPrompt = "Taking the user prompt as the name of a movie, provide a brief synopsis of the movie. (Within 40 words)";
             ReviewLanguageModel = new LLM(oaiConfig);
-            ReviewLanguageModel.systemPrompt = "The user prompt will be the name of a movie. Provide ten 50 word reviews of the movie, each with varying opinions. Ensure the reviews are realistic and full-length, not singular sentences. Do not number your responses; provide only the reviews, delimited with |";
+            ReviewLanguageModel.systemPrompt = "The user prompt will be the name of a movie. Provide ten 30-80 word reviews of the movie, each with varying opinions. Ensure the reviews are realistic and full-length, not singular sentences. Do not number your responses; provide only the reviews, delimited with |";
+        }
+        private async Task<string> GenerateReviews(Movie movie)
+        {
+            string userExample = "Titanic";
+            string assistantExample = "Titanic is a cinematic masterpiece with breathtaking visuals and a heartbreaking love story. Leonardo DiCaprio and Kate Winslet are perfectly cast, and their chemistry makes the tragedy even more impactful.|A bit too long for my taste, but I have to admit the special effects are impressive. The romance is a little melodramatic, but it’s iconic for a reason.|I love Titanic for its blend of history and drama. The characters bring the era to life, and the sinking scenes are intense. It’s a classic that keeps you invested from start to finish.|Honestly, I don’t see why everyone loves this movie so much. It’s well-made, sure, but the romance feels forced, and the ending is frustrating. Not for me.|Titanic is more than a movie—it’s an experience. The score, the acting, and the attention to detail create an emotional journey. It’s easy to see why it’s considered one of the best.|Despite being a bit melodramatic, Titanic succeeds in balancing romance and tragedy. The performances are memorable, and the cinematography beautifully captures the grandeur of the ship.|Watching Titanic is an emotional rollercoaster. Jack and Rose’s love story against the backdrop of the sinking ship is unforgettable, and the final scenes are genuinely moving.|While Titanic is visually impressive, it feels overly sentimental. The love story, while engaging, overshadows the historical event, which I would have liked more focus on.|James Cameron outdid himself with Titanic. The movie is visually stunning, and the love story adds depth to the tragedy. It’s a film that will stand the test of time.|Not everyone’s cup of tea, especially with its length, but Titanic has undeniable charm. The sinking scenes are gripping, and the movie makes you feel like you’re truly aboard the ill-fated ship.";
+            return await ReviewLanguageModel.CallWithSystemPromptAndExample(userExample, assistantExample, movie.Title);
         }
 
 
@@ -46,6 +52,7 @@ namespace Controllers
             {
                 return NotFound();
             }
+            
 
             var movie = await _context.Movie
                 .FirstOrDefaultAsync(m => m.Id == id);
@@ -59,7 +66,7 @@ namespace Controllers
                 .Select(r => r.Actor)
                 .ToListAsync();
             
-            IEnumerable<string> LLMOutput = (await ReviewLanguageModel.CallWithSystemPrompt(movie.Title).ConfigureAwait(false)).Split("|");
+            IEnumerable<string> LLMOutput = (await GenerateReviews(movie).ConfigureAwait(false)).Split("|");
 
             IEnumerable<Tuple<string, string>> reviews = [];
 
@@ -87,27 +94,62 @@ namespace Controllers
         // POST: Movies/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> Create([Bind("Id,Title,IMBDLink,Genre,ReleaseYear,Poster,Summary")] Movie movie, IFormFile? PosterFile)
+        //{
+        //    ModelState.Remove("Poster");
+
+        //    if (PosterFile != null && PosterFile.Length > 0)
+        //    {
+        //        using (var memoryStream = new MemoryStream())
+        //        {
+        //            await PosterFile.CopyToAsync(memoryStream);
+        //            movie.Poster = memoryStream.ToArray(); // Convert to byte[]
+        //        }
+        //    }
+        //    movie.Summary = await SummaryLanguageModel.CallWithSystemPrompt(movie.Title);
+
+        //    if (ModelState.IsValid)
+        //    {
+        //        _context.Add(movie);
+        //        await _context.SaveChangesAsync();
+        //        return RedirectToAction(nameof(Index));
+        //    }
+        //    return View(movie);
+        //}
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Title,IMBDLink,Genre,ReleaseYear,Poster,Summary")] Movie movie, IFormFile? PosterFile)
+        public async Task<IActionResult> Create([Bind("Id,Title,IMBDLink,Genre,ReleaseYear,Poster,Summary")] Movie movie)
         {
             ModelState.Remove("Poster");
 
-            if (PosterFile != null && PosterFile.Length > 0)
-            {
-                using (var memoryStream = new MemoryStream())
-                {
-                    await PosterFile.CopyToAsync(memoryStream);
-                    movie.Poster = memoryStream.ToArray(); // Convert to byte[]
-                }
-            }
-            movie.Summary = await SummaryLanguageModel.CallWithSystemPrompt(movie.Title);
+            IMDTO dto = await new IMDB().TitleSearch(movie.Title);
+            System.Diagnostics.Debug.WriteLine($"Past TitleSearch");
+            movie.Title = dto.Title;
+            movie.IMBDLink = dto.IMBDLink;
+            movie.ReleaseYear = (int)dto.ReleaseYear;
+            movie.Genre = dto.Genre;
+            movie.Poster = dto.Poster; 
+            movie.Summary = dto.Summary;
+            System.Diagnostics.Debug.WriteLine($"DTO Resolved, Summary is {movie.Summary}");
 
             if (ModelState.IsValid)
             {
+                System.Diagnostics.Debug.WriteLine($"Model State is Valid");
                 _context.Add(movie);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
+            } else
+            {
+                foreach (var modelState in ModelState.Values)
+                {
+                    foreach (var error in modelState.Errors)
+                    {
+                        System.Diagnostics.Debug.WriteLine(error.ErrorMessage);
+                    }
+                }
             }
             return View(movie);
         }

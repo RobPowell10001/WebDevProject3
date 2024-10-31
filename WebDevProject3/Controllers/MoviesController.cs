@@ -10,42 +10,28 @@ using WebDevProject3.Data;
 using Microsoft.Extensions.Options;
 using API;
 using Models;
-using VaderSharp2;
-using System.Numerics;
 
 namespace Controllers
 {
     public class MoviesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private VaderAPI Vader;
         private LLM SummaryLanguageModel;
         private LLM ReviewLanguageModel;
 
-        //Returns a triple double containing the positive, negative, and compound sentiment values
-        public Tuple<double,double,double> AnalyzeSentiment(string inputText)
-        {
-            // Initialize the sentiment analyzer
-            var analyzer = new SentimentIntensityAnalyzer();
-
-            // Analyze the sentiment of the input text
-            var results = analyzer.PolarityScores(inputText);
-
-            // Prepare the output
-            var sentimentResult = new Tuple<double, double, double>(results.Positive, results.Negative, results.Compound);
-
-            // Pass the result to the view or return as JSON
-            return sentimentResult;
-        }
+        
 
         public MoviesController(ApplicationDbContext context, IOptions<Settings.OAIConfig> oaiConfig)
         {
             _context = context;
+            Vader = new VaderAPI();
             SummaryLanguageModel = new LLM(oaiConfig);
             SummaryLanguageModel.systemPrompt = "Taking the user prompt as the name of a movie, provide a brief synopsis of the movie. (Within 40 words)";
             ReviewLanguageModel = new LLM(oaiConfig);
             ReviewLanguageModel.systemPrompt = "The user prompt will be the name of a movie. Provide ten 50 word reviews of the movie, each with varying opinions. Ensure the reviews are realistic and full-length, not singular sentences. Do not number your responses; provide only the reviews, delimited with |";
-
         }
+
 
         // GET: Movies
         public async Task<IActionResult> Index()
@@ -81,7 +67,7 @@ namespace Controllers
             
             foreach (string review in LLMOutput)
             { 
-                var sentiment = AnalyzeSentiment(review);
+                var sentiment = Vader.AnalyzeSentiment(review);
                 string sentimentString = $"Positivity: {sentiment.Item1}\n Negativity: {sentiment.Item2}\n Overall: {sentiment.Item3}";
                 averageSentiment += sentiment.Item3 / 10;
                 reviews = reviews.Append(new Tuple<string, string>(review, sentimentString));

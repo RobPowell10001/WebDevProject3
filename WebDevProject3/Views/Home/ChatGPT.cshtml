@@ -10,7 +10,6 @@
 <script>
     // Use Razor syntax to inject the backend value into JavaScript
     var backendMessage = "@ViewData["Message"]";
-    console.log("Message from backend:", backendMessage);
 
     const message = document.createElement("p");
     message.textContent = backendMessage;

@@ -46,7 +46,12 @@
                 @Html.DisplayFor(modelItem => item.IMDBLink)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.Photo)
+                    @if (item.Photo != null)
+                    {
+                        var base64 = Convert.ToBase64String(item.Photo);
+                        var imgSrc = string.Format("data:image/jpg;base64,{0}", base64);
+                        <img src="@imgSrc" height="200" width="135" />
+                    }
             </td>
             <td>
                 <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |

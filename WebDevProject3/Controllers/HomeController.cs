@@ -25,9 +25,9 @@ namespace Controllers
         public async Task<IActionResult> ChatGPT()
         {   
 
-            string completion = await LLM.CallChatGPT("Say 'this is a test.'");
+            string completion = await LLM.CallChatGPT("Very briefly introduce this website, AIMDB, a movie database with various AI Language model powered features, and yourself, ChatGPT.");
 
-            ViewData["Message"] = "ChatGPT Message:" + completion;
+            ViewData["Message"] = "ChatGPT Message: " + completion;
             return View();
         }
 

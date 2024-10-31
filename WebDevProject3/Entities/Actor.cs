@@ -9,11 +9,11 @@ public class Actor
     [Key]
     public int Id { get; set; }
     [Required]
-    public string Name { get; set; }
-    public string Gender { get; set; }
-    public int Age { get; set; }
+    public string? Name { get; set; }
+    public string? Gender { get; set; }
+    public int? Age { get; set; }
     [IMDBLinkValidation]
-    public string IMDBLink { get; set; }
+    public string? IMDBLink { get; set; }
     public byte[]? Photo { get; set; }
 
     public string? Bio {  get; set; }

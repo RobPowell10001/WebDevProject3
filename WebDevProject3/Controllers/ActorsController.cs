@@ -101,6 +101,7 @@ namespace Controllers
 
             if (PhotoFile != null && PhotoFile.Length > 0)
             {
+
                 using (var memoryStream = new MemoryStream())
                 {
                     await PhotoFile.CopyToAsync(memoryStream);

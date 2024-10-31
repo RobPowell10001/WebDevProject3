@@ -1,4 +1,8 @@
-﻿namespace API;
+﻿using IMDb;
+using System.Text.RegularExpressions;
+using WebDevProject3.Data.Migrations;
+
+namespace API;
 
 public class IMDB
 {
@@ -21,27 +25,20 @@ public class IMDB
 
     public async Task<IMDTO> TitleSearch(string title)
     {
-        System.Diagnostics.Debug.WriteLine($"In Title Search");
-        IMDb.Results results = Database.search(title);
+        string titlesearch = Regex.Replace(title, "[^a-zA-Z0-9]", "");
+        IMDb.Results results = Database.search(titlesearch, eSearch.All, false);
         IMDb.Title movieResult = Database.title(results.titles[0].id);
-        System.Diagnostics.Debug.WriteLine($"Past the Database Query!, movie id is {movieResult.id}");
         string summary = movieResult.plot;
         string genre = "";
         foreach (var item in movieResult.genres)
         {
             genre += $"{item.name}, ";
         }
-        System.Diagnostics.Debug.WriteLine($"Past Genres");
         genre = genre.Substring(0, genre.Length - 2);
-        System.Diagnostics.Debug.WriteLine($"Past Substring");
-        string realTitle = movieResult.title;
-        System.Diagnostics.Debug.WriteLine($"Past Title");
+        string realTitle = movieResult.originalTitle;
         string IMDBLink = $"https://www.imdb.com/title/{movieResult.id}/";
-        System.Diagnostics.Debug.WriteLine($"Past Link");
         int releaseYear = Int32.Parse(movieResult.year);
-        System.Diagnostics.Debug.WriteLine($"Past Year");
         var poster = await GetImageByteArrayFromUrl(movieResult.image.url);
-        System.Diagnostics.Debug.WriteLine($"Image Constructed!");
 
 
         return new IMDTO(summary,genre,realTitle,IMDBLink,releaseYear,poster);

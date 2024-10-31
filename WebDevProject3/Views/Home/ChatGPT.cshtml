@@ -1,5 +1,5 @@
 ﻿@{
-    ViewData["Title"] = "ChatGPT Test";
+    ViewData["Title"] = "ChatGPT Explanation";
 }
 <h1>@ViewData["Title"]</h1>
 
@@ -9,6 +9,7 @@
 
 <script>
     // Use Razor syntax to inject the backend value into JavaScript
+    // This section was done before I was familiar with cshtml view models
     var backendMessage = "@ViewData["Message"]";
 
     const message = document.createElement("p");
